@@ -18,62 +18,60 @@ function addImageOverlays() {
   const images = document.getElementsByTagName('img');
 
   for (const image of images) {
-    // Skip if the overlay is already added
-    if (image.parentNode.classList.contains('image-wrapper')) {
-      continue;
-    }
-
     const imageUrl = image.src;
+
+    const imageId = Math.random().toString(36).substring(2, 15);
+    image.setAttribute('data-image-id', imageId);
 
     if (imageUrl.startsWith('data:')) {
       const size = getBase64ImageSize(imageUrl);
-      const formattedSize = formatBytes(size);
-
-      const overlay = document.createElement('div');
-      overlay.className = 'image-size-overlay';
-      overlay.textContent = formattedSize;
-
-      const wrapper = document.createElement('div');
-      wrapper.className = 'image-wrapper';
-      image.parentNode.insertBefore(wrapper, image);
-      wrapper.appendChild(image);
-      wrapper.appendChild(overlay);
+      createOverlay(image, size, imageId);
     } else {
       chrome.runtime.sendMessage({ action: 'getImageSize', url: imageUrl }, (response) => {
         if (response.error) {
           console.error(response.error);
           return;
         }
-
-        const size = response.size;
-        const formattedSize = formatBytes(size);
-
-        const overlay = document.createElement('div');
-        overlay.className = 'image-size-overlay';
-        overlay.textContent = formattedSize;
-
-        const wrapper = document.createElement('div');
-        wrapper.className = 'image-wrapper';
-        image.parentNode.insertBefore(wrapper, image);
-        wrapper.appendChild(image);
-        wrapper.appendChild(overlay);
+        createOverlay(image, response.size, imageId);
       });
     }
   }
 }
 
+function createOverlay(image, size, imageId) {
+  const formattedSize = formatBytes(size);
+  const dimensions = `${image.naturalWidth} x ${image.naturalHeight}`;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'image-size-overlay';
+  overlay.setAttribute('data-image-id', imageId);
+
+  const sizeText = document.createElement('span');
+  sizeText.textContent = formattedSize;
+
+  const dimensionsText = document.createElement('span');
+  dimensionsText.className = 'image-dimensions';
+  dimensionsText.textContent = dimensions;
+
+  overlay.appendChild(sizeText);
+  overlay.appendChild(dimensionsText);
+
+  document.body.appendChild(overlay);
+  positionOverlay(image, overlay);
+
+  window.addEventListener('resize', () => positionOverlay(image, overlay));
+  window.addEventListener('scroll', () => positionOverlay(image, overlay));
+}
+
+function positionOverlay(image, overlay) {
+  const rect = image.getBoundingClientRect();
+  overlay.style.left = `${rect.left + window.scrollX + 5}px`;
+  overlay.style.top = `${rect.bottom + window.scrollY - 25}px`;
+}
+
 function removeImageOverlays() {
   const overlays = document.querySelectorAll('.image-size-overlay');
   overlays.forEach(overlay => overlay.remove());
-
-  const wrappers = document.querySelectorAll('.image-wrapper');
-  wrappers.forEach(wrapper => {
-    const image = wrapper.querySelector('img');
-    if (image) {
-      wrapper.parentNode.insertBefore(image, wrapper);
-    }
-    wrapper.remove();
-  });
 }
 
 function formatBytes(bytes, decimals = 2) {
