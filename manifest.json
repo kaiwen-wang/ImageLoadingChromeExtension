@@ -6,8 +6,12 @@
   "permissions": [
     "activeTab",
     "scripting",
-    "webRequest"
+    "webRequest",
+    "storage"
   ],
+  "action": {
+    "default_title": "Toggle Image Size Overlay"
+  },
   "host_permissions": [
     "<all_urls>"
   ],

@@ -1,26 +1,63 @@
-const images = document.getElementsByTagName('img');
+chrome.storage.local.get('isEnabled', (data) => {
+  if (data.isEnabled) {
+    addImageOverlays();
+  }
+});
 
-for (const image of images) {
-  const imageUrl = image.src;
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === 'toggle') {
+    if (request.isEnabled) {
+      addImageOverlays();
+    } else {
+      removeImageOverlays();
+    }
+  }
+});
 
-  chrome.runtime.sendMessage({ action: 'getImageSize', url: imageUrl }, (response) => {
-    if (response.error) {
-      console.error(response.error);
-      return;
+function addImageOverlays() {
+  const images = document.getElementsByTagName('img');
+
+  for (const image of images) {
+    // Skip if the overlay is already added
+    if (image.parentNode.classList.contains('image-wrapper')) {
+      continue;
     }
 
-    const size = response.size;
-    const formattedSize = formatBytes(size);
+    const imageUrl = image.src;
 
-    const overlay = document.createElement('div');
-    overlay.className = 'image-size-overlay';
-    overlay.textContent = formattedSize;
+    chrome.runtime.sendMessage({ action: 'getImageSize', url: imageUrl }, (response) => {
+      if (response.error) {
+        console.error(response.error);
+        return;
+      }
 
-    const wrapper = document.createElement('div');
-    wrapper.className = 'image-wrapper';
-    image.parentNode.insertBefore(wrapper, image);
-    wrapper.appendChild(image);
-    wrapper.appendChild(overlay);
+      const size = response.size;
+      const formattedSize = formatBytes(size);
+
+      const overlay = document.createElement('div');
+      overlay.className = 'image-size-overlay';
+      overlay.textContent = formattedSize;
+
+      const wrapper = document.createElement('div');
+      wrapper.className = 'image-wrapper';
+      image.parentNode.insertBefore(wrapper, image);
+      wrapper.appendChild(image);
+      wrapper.appendChild(overlay);
+    });
+  }
+}
+
+function removeImageOverlays() {
+  const overlays = document.querySelectorAll('.image-size-overlay');
+  overlays.forEach(overlay => overlay.remove());
+
+  const wrappers = document.querySelectorAll('.image-wrapper');
+  wrappers.forEach(wrapper => {
+    const image = wrapper.querySelector('img');
+    if (image) {
+      wrapper.parentNode.insertBefore(image, wrapper);
+    }
+    wrapper.remove();
   });
 }
 
