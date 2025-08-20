@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "Image Size Overlay",
+  "version": "1.0",
+  "description": "Displays the size of images on a web page.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "webRequest"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "css": [
+        "styles.css"
+      ]
+    }
+  ]
+}
