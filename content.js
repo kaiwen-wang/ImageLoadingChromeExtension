@@ -25,13 +25,8 @@ function addImageOverlays() {
 
     const imageUrl = image.src;
 
-    chrome.runtime.sendMessage({ action: 'getImageSize', url: imageUrl }, (response) => {
-      if (response.error) {
-        console.error(response.error);
-        return;
-      }
-
-      const size = response.size;
+    if (imageUrl.startsWith('data:')) {
+      const size = getBase64ImageSize(imageUrl);
       const formattedSize = formatBytes(size);
 
       const overlay = document.createElement('div');
@@ -43,7 +38,27 @@ function addImageOverlays() {
       image.parentNode.insertBefore(wrapper, image);
       wrapper.appendChild(image);
       wrapper.appendChild(overlay);
-    });
+    } else {
+      chrome.runtime.sendMessage({ action: 'getImageSize', url: imageUrl }, (response) => {
+        if (response.error) {
+          console.error(response.error);
+          return;
+        }
+
+        const size = response.size;
+        const formattedSize = formatBytes(size);
+
+        const overlay = document.createElement('div');
+        overlay.className = 'image-size-overlay';
+        overlay.textContent = formattedSize;
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'image-wrapper';
+        image.parentNode.insertBefore(wrapper, image);
+        wrapper.appendChild(image);
+        wrapper.appendChild(overlay);
+      });
+    }
   }
 }
 
@@ -71,4 +86,15 @@ function formatBytes(bytes, decimals = 2) {
   const i = Math.floor(Math.log(bytes) / Math.log(k));
 
   return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+}
+
+function getBase64ImageSize(dataUrl) {
+  const head = 'data:image';
+  const i = dataUrl.indexOf(';base64,');
+  if (i === -1) {
+    return 0;
+  }
+  const base64 = dataUrl.substring(i + ';base64,'.length);
+  const padding = (base64.match(/=/g) || []).length;
+  return base64.length * 3 / 4 - padding;
 }
