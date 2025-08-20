@@ -13,4 +13,5 @@
   border-radius: 5px;
   font-family: sans-serif;
   font-size: 10px;
+  white-space: nowrap;
 }
